@@ -20,19 +20,26 @@ const Transcription = ({ isRecording, onTranscriptionUpdate }) => {
   }, [isRecording, listening, browserSupportsSpeechRecognition]);
 
   useEffect(() => {
-    onTranscriptionUpdate((prev) => ({
-      ...prev,
-      transcription: transcript,
-    }));
+    if (transcript) {
+      onTranscriptionUpdate((prev) => ({
+        ...prev,
+        transcription: transcript,
+        actionItems: [
+          ...prev.actionItems,
+          ...extractActionItemsFromText(transcript),
+        ],
+      }));
+    }
   }, [transcript, onTranscriptionUpdate]);
 
   if (!browserSupportsSpeechRecognition) {
-    return <div>Browser doesn't support speech recognition</div>;
+    return <div>Browser doesn't support speech recognition.</div>;
   }
+
   return (
     <div className="border p-4 rounded-lg">
       <h2 className="text-xl font-semibold mb-4">Real-time Transcription</h2>
-      <div className="h-64 overflow-y-hidden">{transcript}</div>
+      <div className="h-64 overflow-y-auto">{transcript}</div>
     </div>
   );
 };
