@@ -52,51 +52,49 @@ export default function EmailDraft({ meetingData }) {
     };
   };
 
+  // EmailDraft.jsx - Modify the generateEmail function:
   const generateEmail = () => {
     const summary = generateSummary();
     const date = new Date().toLocaleDateString();
 
     return `Subject: Meeting Summary - ${date}
-  
-  Dear team,
-  
-  Thank you for attending today's meeting. Here's a summary of our discussion:
-  
-  Duration: ${summary.duration}
-  Participants: ${summary.participants.join(", ") || "No participants recorded"}
-  
-  Key Points Discussed:
-  ${
-    summary.keyPoints.length > 0
-      ? summary.keyPoints.map((point) => `- ${point}`).join("\n")
-      : "- No key points recorded"
-  }
-  
-  Decisions Made:
-  ${
-    summary.decisions.length > 0
-      ? summary.decisions.map((decision) => `- ${decision}`).join("\n")
-      : "- No decisions recorded"
-  }
-  
-  Action Items:
-  ${
-    summary.actionItems.length > 0
-      ? summary.actionItems
-          .map(
-            (item) =>
-              `- ${item.text}${
-                item.assignee ? ` (Assigned to: @${item.assignee})` : ""
-              }${item.deadline ? ` (Deadline: ${item.deadline})` : ""}`
-          )
-          .join("\n")
-      : "- No action items recorded"
-  }
-  
-  Best regards,
-  [Your Name]`;
-  };
 
+Dear team,
+
+Here's a summary of our meeting:
+
+${meetingData?.summary || "No summary available"}
+
+Duration: ${summary.duration}
+Participants: ${summary.participants.join(", ") || "No participants recorded"}
+
+Key Points Discussed:
+${
+  meetingData?.keyPoints?.map((point) => `- ${point}`).join("\n") ||
+  "- No key points recorded"
+}
+
+Decisions Made:
+${
+  meetingData?.decisions?.map((decision) => `- ${decision}`).join("\n") ||
+  "- No decisions recorded"
+}
+
+Action Items:
+${
+  meetingData?.actionItems
+    ?.map(
+      (item) =>
+        `- ${item.text}${
+          item.assignee ? ` (Assigned to: @${item.assignee})` : ""
+        }${item.deadline ? ` (Deadline: ${item.deadline})` : ""}`
+    )
+    .join("\n") || "- No action items recorded"
+}
+
+Best regards,
+[Your Name]`;
+  };
   const copyToClipboard = () => {
     const emailContent = generateEmail();
     navigator.clipboard

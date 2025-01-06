@@ -1,7 +1,7 @@
 "use client";
 
 import "regenerator-runtime/runtime";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import ActionItems from "../components/ActionItems";
 import EmailDraft from "../components/EmailDraft";
 import Summary from "../components/Summary";
@@ -11,14 +11,22 @@ export default function MeetingPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [fullTranscript, setFullTranscript] = useState("");
+  const transcriptRef = useRef("");
   const [meetingData, setMeetingData] = useState({
     transcription: "",
     actionItems: [],
     summary: "",
+    keyPoints: [], // Add this
+    decisions: [], // Add this
     participants: [],
     startTime: null,
     endTime: null,
   });
+
+  // Keep transcriptRef in sync with fullTranscript
+  useEffect(() => {
+    transcriptRef.current = fullTranscript;
+  }, [fullTranscript]);
 
   const processWithAI = useCallback(async (transcription) => {
     try {
@@ -60,9 +68,20 @@ export default function MeetingPage() {
     }
   }, []);
 
-  const startMeeting = () => {
+  const handleTranscriptionUpdate = useCallback((update) => {
+    console.log("Received transcript update:", update.transcription);
+    if (update.transcription && update.transcription.trim()) {
+      const newTranscript = update.transcription.trim();
+      setFullTranscript(newTranscript);
+      transcriptRef.current = newTranscript; // Update ref immediately
+    }
+  }, []);
+
+  const startMeeting = useCallback(() => {
+    console.log("Starting new meeting");
     setIsRecording(true);
     setFullTranscript("");
+    transcriptRef.current = "";
     setMeetingData({
       transcription: "",
       actionItems: [],
@@ -71,33 +90,35 @@ export default function MeetingPage() {
       startTime: new Date(),
       endTime: null,
     });
-  };
+  }, []);
 
-  const endMeeting = async () => {
+  const endMeeting = useCallback(async () => {
+    // First stop recording
     setIsRecording(false);
 
-    // Update meeting data with final transcript
-    const finalMeetingData = {
-      ...meetingData,
-      transcription: fullTranscript,
-      endTime: new Date(),
-    };
-    setMeetingData(finalMeetingData);
+    // Use a small delay to ensure we have the final transcript
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
-    console.log("Processing final transcription:", fullTranscript);
-    await processWithAI(fullTranscript);
-  };
+    // Get the final transcript from ref
+    const finalTranscript = transcriptRef.current;
+    console.log("Ending meeting with final transcript:", finalTranscript);
 
-  const handleTranscriptionUpdate = (update) => {
-    if (update.transcription) {
-      setFullTranscript((prev) => {
-        const newTranscript = prev + " " + update.transcription.trim();
-        console.log("Updated transcript:", newTranscript);
-        return newTranscript;
-      });
+    if (finalTranscript && finalTranscript.trim()) {
+      // Update meeting data
+      const finalMeetingData = {
+        ...meetingData,
+        transcription: finalTranscript,
+        endTime: new Date(),
+      };
+      setMeetingData(finalMeetingData);
+
+      // Process with AI
+      console.log("Starting AI processing with transcript:", finalTranscript);
+      await processWithAI(finalTranscript);
+    } else {
+      console.log("No transcription to process - transcript empty");
     }
-  };
-
+  }, [meetingData, processWithAI]);
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-6">AI Meeting Assistant</h1>

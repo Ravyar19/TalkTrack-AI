@@ -43,15 +43,13 @@ export default function Summary({ meetingData }) {
   };
 
   const generateSummary = () => {
-    const keyPoints = extractKeyPoints(meetingData?.transcription || "");
-    const decisions = extractDecisions(meetingData?.transcription || "");
-
     return {
       duration: calculateDuration(meetingData?.startTime, meetingData?.endTime),
       participants: meetingData?.participants || [],
-      keyPoints,
-      decisions,
+      keyPoints: meetingData?.keyPoints || [], // Use AI-provided keyPoints
+      decisions: meetingData?.decisions || [], // Use AI-provided decisions
       actionItems: meetingData?.actionItems || [],
+      summary: meetingData?.summary || "", // Add this line to use AI-provided summary
     };
   };
 

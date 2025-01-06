@@ -6,38 +6,53 @@ const openai = new OpenAI({
 });
 
 function cleanTranscript(text: string): string {
+  if (!text) return "";
+
   // First, normalize spaces and remove extra whitespace
   let cleanText = text.trim().replace(/\s+/g, " ");
 
-  // Remove consecutive duplicate words using a more robust pattern
-  cleanText = cleanText.split(" ").reduce((acc, word) => {
-    if (!acc.endsWith(word)) {
-      return acc + (acc.length ? " " : "") + word;
-    }
-    return acc;
-  }, "");
+  // Split into sentences for better processing
+  const sentences = cleanText
+    .split(/[.!?]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
 
-  // Remove sections of excessive repetition (more than 3 times)
-  const words = cleanText.split(" ");
-  const deduplicatedWords = [];
-  let repeatCount = 1;
-  let lastWord = "";
-
-  for (const word of words) {
-    if (word === lastWord) {
-      repeatCount++;
-      if (repeatCount <= 3) {
-        // Allow up to 3 repetitions
-        deduplicatedWords.push(word);
+  // Process each sentence to remove duplicates
+  const processedSentences = sentences.reduce(
+    (acc: string[], sentence: string) => {
+      // Skip if this sentence is too similar to the previous one
+      if (acc.length > 0 && acc[acc.length - 1].includes(sentence)) {
+        return acc;
       }
-    } else {
-      repeatCount = 1;
-      deduplicatedWords.push(word);
-      lastWord = word;
-    }
-  }
 
-  cleanText = deduplicatedWords.join(" ");
+      // Clean up the sentence
+      const words = sentence.split(" ");
+      const cleanWords = [];
+      let prevWord = "";
+      let repeatCount = 0;
+
+      for (const word of words) {
+        if (word.toLowerCase() === prevWord.toLowerCase()) {
+          repeatCount++;
+          if (repeatCount <= 2) {
+            // Allow up to 2 repetitions
+            cleanWords.push(word);
+          }
+        } else {
+          repeatCount = 0;
+          cleanWords.push(word);
+          prevWord = word;
+        }
+      }
+
+      acc.push(cleanWords.join(" "));
+      return acc;
+    },
+    []
+  );
+
+  // Join sentences back together
+  cleanText = processedSentences.join(". ") + ".";
 
   // Truncate if still too long
   if (cleanText.length > 15000) {
@@ -82,7 +97,12 @@ export async function POST(req: Request) {
       messages: [
         {
           role: "system",
-          content: `You are an AI meeting assistant. Analyze the following meeting transcription and extract the key information. Focus only on clear, non-repetitive content and ignore any duplicated phrases or words.
+          content: `You are an AI meeting assistant. Analyze the following meeting transcription and extract the key information. Focus on identifying:
+1. Key discussion points
+2. Action items with assignees and deadlines if mentioned
+3. Important decisions made
+4. Numbers, metrics, and statistics mentioned
+5. Problems and proposed solutions
 
 Return your analysis in this JSON format:
 {
@@ -95,7 +115,7 @@ Return your analysis in this JSON format:
     }
   ],
   "decisions": ["decision1", "decision2"],
-  "summary": "brief summary"
+  "summary": "comprehensive meeting summary including metrics and key outcomes"
 }`,
         },
         {
@@ -117,7 +137,6 @@ Return your analysis in this JSON format:
       console.log("--- Analysis Result ---");
       console.log(JSON.stringify(analysis, null, 2));
 
-      // Validate the response contains actual content
       if (
         analysis.keyPoints.length === 0 &&
         analysis.actionItems.length === 0

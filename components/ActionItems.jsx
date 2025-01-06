@@ -1,15 +1,5 @@
+// ActionItems.jsx - Remove the extractActionItems function since we're getting items from the API
 export default function ActionItems({ actionItems = [] }) {
-  const extractActionItems = (text) => {
-    const patterns = [
-      /(?:need to|must|should|will|going to|assigned to)(.*?)(?:\.|$)/gi,
-      /(?:action item|todo|task):(.*?)(?:\.|$)/gi,
-      /(?:@\w+)(.*?)(?:\.|$)/gi,
-    ];
-
-    // Implementation of action item extraction logic
-    return [];
-  };
-
   return (
     <div className="border p-4 rounded-lg">
       <h2 className="text-xl font-semibold mb-4">Action Items</h2>
